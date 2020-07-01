@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package omo.msp.session;
+option go_package= "session";
+
+service SessionService {
+  rpc Create(RequestInfo) returns (ReplyInfo) {}
+  rpc CheckAvailable(RequestInfo) returns (ReplyAvailable) {}
+  rpc Remove(RequestInfo) returns (ReplyInfo) {}
+}
+
+enum ResultStatus {
+  Success = 0;
+  MaxLimit = 1;
+  Repeated = 2;
+  NotExisted = 3;
+  DBException = 4;
+  Empty = 5;
+}
+
+message RequestInfo {
+  string uid = 1;
+}
+
+message ReplyInfo {
+  string uid = 1;
+  string token = 2;
+  ResultStatus status = 3;
+}
+
+message ReplyAvailable {
+  string uid = 1;
+  bool available = 2;
+  ResultStatus status = 3;
+}
