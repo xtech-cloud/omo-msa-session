@@ -8,14 +8,7 @@ service:
 logger:
     level: info
     dir: /var/log/msa/
-database:
-    name: rgsCloud
-    ip: 127.0.0.1
-    port: "27017"
-    user: root
-    password: pass2019
-    type: mongodb
 basic:
     timeout: 3600
-	secret: "yumei2020-platfom"
+    secret: "yumei2020-platfom"
 `

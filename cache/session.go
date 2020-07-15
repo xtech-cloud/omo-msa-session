@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"omo.msa.session/config"
 	"time"
@@ -8,46 +9,56 @@ import (
 
 type SessionInfo struct {
 	BaseInfo
-	Token string
-	Account string
+	User  string
+	Token *jwt.Token
 }
 
-func CreateSession(account string) string {
-	info := GetSession(account)
+func CreateSession(user string) string {
+	info := GetSessionByUser(user)
 	if info == nil {
 		tmp := new(SessionInfo)
-		tmp.Account = account
+		tmp.User = user
 		tmp.CreateTime = time.Now()
 		tmp.Token = createToken()
 		cacheCtx.sessions = append(cacheCtx.sessions, tmp)
-		return tmp.Token
+		return tmp.Token.Raw
 	}else{
-		return info.Token
+		return info.Token.Raw
 	}
 }
 
-func GetSession(account string) *SessionInfo {
+func GetSessionByUser(user string) *SessionInfo {
 	for i :=0 ;i < len(cacheCtx.sessions);i += 1 {
-		if cacheCtx.sessions[i].Account == account {
+		if cacheCtx.sessions[i].User == user {
 			return cacheCtx.sessions[i]
 		}
 	}
 	return nil
 }
 
-func RemoveSession(account string) {
+func GetSessionByToken(msg string) *SessionInfo {
+	for i :=0 ;i < len(cacheCtx.sessions);i += 1 {
+		if cacheCtx.sessions[i].TokenString() == msg {
+			return cacheCtx.sessions[i]
+		}
+	}
+	return nil
+}
+
+func RemoveSession(user string) {
 	for i := 0;i < len(cacheCtx.sessions);i += 1 {
-		if cacheCtx.sessions[i].Account == account {
+		if cacheCtx.sessions[i].User == user {
 			cacheCtx.sessions = append(cacheCtx.sessions[:i], cacheCtx.sessions[i+1:]...)
 			break
 		}
 	}
 }
 
-func createToken() string {
+func createToken() *jwt.Token {
 	token := jwt.New(jwt.SigningMethodHS256)
-	tokenString, _ := token.SignedString([]byte(config.Schema.Basic.Secret))
-	return tokenString
+	msg, _ := token.SignedString([]byte(config.Schema.Basic.Secret))
+	token.Raw = msg
+	return token
 }
 
 func (mine *SessionInfo)IsExpired() bool {
@@ -58,6 +69,23 @@ func (mine *SessionInfo)IsExpired() bool {
 	}else{
 		return true
 	}
+}
+
+func (mine *SessionInfo)TokenString() string {
+	return mine.Token.Raw
+}
+
+func ParseToken(msg string) (*jwt.Token,error) {
+	token, err := jwt.Parse(msg, func(token *jwt.Token) (interface{}, error) {
+		// Don't forget to validate the alg is what you expect:
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+
+		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
+		return []byte(config.Schema.Basic.Secret), nil
+	})
+	return token, err
 }
 
 

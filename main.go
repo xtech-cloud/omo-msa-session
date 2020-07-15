@@ -3,15 +3,16 @@ package main
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/logger"
 	_ "github.com/micro/go-plugins/registry/consul/v2"
 	_ "github.com/micro/go-plugins/registry/etcdv3/v2"
+	proto "github.com/xtech-cloud/omo-msp-session/proto/session"
 	"io"
 	"omo.msa.session/cache"
 	"omo.msa.session/config"
 	"omo.msa.session/grpc"
-	proto "omo.msa.session/grpc/proto"
 	"os"
 	"path/filepath"
 	"time"
@@ -32,6 +33,8 @@ func main() {
 		micro.Address(config.Schema.Service.Address),
 	)
 	// Initialise service
+	fmt.Println(config.Schema.Basic.Timeout)
+	fmt.Println(config.Schema.Logger.Level)
 	service.Init()
 	// Register Handler
 	_ = proto.RegisterSessionServiceHandler(service.Server(), new(grpc.SessionService))
