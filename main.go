@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"fmt"
 	"github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/logger"
 	_ "github.com/micro/go-plugins/registry/consul/v2"
@@ -33,8 +32,6 @@ func main() {
 		micro.Address(config.Schema.Service.Address),
 	)
 	// Initialise service
-	fmt.Println(config.Schema.Basic.Timeout)
-	fmt.Println(config.Schema.Logger.Level)
 	service.Init()
 	// Register Handler
 	_ = proto.RegisterSessionServiceHandler(service.Server(), new(grpc.SessionService))

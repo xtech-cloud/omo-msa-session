@@ -14,17 +14,13 @@ type SessionInfo struct {
 }
 
 func CreateSession(user string) string {
-	info := GetSessionByUser(user)
-	if info == nil {
-		tmp := new(SessionInfo)
-		tmp.User = user
-		tmp.CreateTime = time.Now()
-		tmp.Token = createToken()
-		cacheCtx.sessions = append(cacheCtx.sessions, tmp)
-		return tmp.Token.Raw
-	}else{
-		return info.Token.Raw
-	}
+	RemoveSession(user)
+	tmp := new(SessionInfo)
+	tmp.User = user
+	tmp.CreateTime = time.Now()
+	tmp.Token = createToken(user)
+	cacheCtx.sessions = append(cacheCtx.sessions, tmp)
+	return tmp.Token.Raw
 }
 
 func GetSessionByUser(user string) *SessionInfo {
@@ -54,9 +50,9 @@ func RemoveSession(user string) {
 	}
 }
 
-func createToken() *jwt.Token {
+func createToken(uid string) *jwt.Token {
 	token := jwt.New(jwt.SigningMethodHS256)
-	msg, _ := token.SignedString([]byte(config.Schema.Basic.Secret))
+	msg, _ := token.SignedString([]byte(uid+config.Schema.Basic.Secret))
 	token.Raw = msg
 	return token
 }
@@ -75,7 +71,7 @@ func (mine *SessionInfo)TokenString() string {
 	return mine.Token.Raw
 }
 
-func ParseToken(msg string) (*jwt.Token,error) {
+func ParseToken(msg, uid string) (*jwt.Token,error) {
 	token, err := jwt.Parse(msg, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -83,7 +79,7 @@ func ParseToken(msg string) (*jwt.Token,error) {
 		}
 
 		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
-		return []byte(config.Schema.Basic.Secret), nil
+		return []byte(uid+config.Schema.Basic.Secret), nil
 	})
 	return token, err
 }
