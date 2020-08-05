@@ -68,7 +68,7 @@ func (mine *SessionService)CheckAvailable(ctx context.Context, in *pb.RequestInf
 	//}
 
 	out.User = info.User
-	out.Available = info.IsExpired()
+	out.Available = !info.IsExpired()
 	outLog(path, in)
 	return nil
 }

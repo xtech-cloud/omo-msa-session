@@ -61,10 +61,15 @@ func (mine *SessionInfo)IsExpired() bool {
 	now := time.Now().Unix()
 	diff := now - mine.CreateTime.Unix()
 	if diff > config.Schema.Basic.Timeout {
-		return false
-	}else{
 		return true
+	}else{
+		mine.CreateTime = time.Now()
+		return false
 	}
+}
+
+func (mine *SessionInfo) UpdateTime()  {
+	mine.CreateTime = time.Now()
 }
 
 func (mine *SessionInfo)TokenString() string {
