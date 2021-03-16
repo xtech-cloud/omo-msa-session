@@ -1,23 +1,24 @@
 package config
 
 type ServiceConfig struct {
-	TTL      int64  `yaml:"ttl"`
-	Interval int64  `yaml:"interval"`
-	Address  string `yaml:"address"`
+	TTL      int64  `json:"ttl"`
+	Interval int64  `json:"interval"`
+	Address  string `json:"address"`
 }
 
 type LoggerConfig struct {
-	Level string `yaml:"level"`
-	Dir string `yaml:"dir"`
+	Level string `json:"level"`
+	File string `json:"file"`
+	Std bool `json:"std"`
 }
 
 type BasicConfig struct {
-	Timeout int64 `yaml:"timeout"`
-	Secret string `yaml:"secret"`
+	Timeout int64 `json:"timeout"`
+	Secret string `json:"secret"`
 }
 
 type SchemaConfig struct {
-	Service  ServiceConfig `yaml:"service"`
-	Logger   LoggerConfig  `yaml:"logger"`
-	Basic BasicConfig `yml:"basic"`
+	Service  ServiceConfig `json:"service"`
+	Logger   LoggerConfig  `json:"logger"`
+	Basic BasicConfig `json:"basic"`
 }
