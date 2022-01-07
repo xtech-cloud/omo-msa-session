@@ -15,6 +15,5 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/xtech-cloud/omo-msp-session v1.1.0
 	google.golang.org/protobuf v1.25.0 // indirect
-	gopkg.in/yaml.v2 v2.2.4
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )

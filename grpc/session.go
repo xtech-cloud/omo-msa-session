@@ -52,7 +52,11 @@ func (mine *SessionService)Create(ctx context.Context, in *pb.ReqSessionAdd, out
 		out.Status = outError(path, "the account is empty",pb.ResultStatus_Empty)
 		return nil
 	}
-	token := cache.CreateSession(in.User)
+	token,err := cache.CreateSession(in.User)
+	if err != nil {
+		out.Status = outError(path, err.Error(), pb.ResultStatus_DBException)
+		return nil
+	}
 	out.Token = token
 	out.Status = outLog(path, out)
 	return nil
@@ -65,23 +69,26 @@ func (mine *SessionService)CheckAvailable(ctx context.Context, in *pb.RequestInf
 		out.Status = outError(path, "the token is empty",pb.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.GetSessionByToken(in.Token)
-	if info == nil {
-		out.Status = outError(path, "the token not exited",pb.ResultStatus_NotExisted)
+	//info := cache.GetSessionByToken(in.Token)
+	//if info == nil {
+	//	out.Status = outError(path, "the token not exited",pb.ResultStatus_NotExisted)
+	//	return nil
+	//}
+	token,err := cache.ParseToken(in.Token)
+	if err != nil {
+		out.Status = outError(path, err.Error(),pb.ResultStatus_DBException)
 		return nil
 	}
-	//token,err := cache.ParseToken(info.User, in.Token)
-	//if err != nil {
-	//	out.Status = pb.ResultStatus_DBException
-	//	return err
-	//}
-	//if !token.Valid {
-	//	out.Status = pb.ResultStatus_DBException
-	//	return errors.New("the token valid failed")
-	//}
+	out.User = token.Id
+	err = token.StandardClaims.Valid()
+	if err != nil {
+		out.Status = outError(path, err.Error(), pb.ResultStatus_DBException)
+		return nil
+	}
 
-	out.User = info.User
-	out.Available = !info.IsExpired()
+	//out.Available = !info.IsExpired()
+	out.Uid = token.CheckNew()
+	out.Available = true
 	out.Status = outLog(path, out)
 	return nil
 }
@@ -92,13 +99,13 @@ func (mine *SessionService)Remove(ctx context.Context, in *pb.ReqSessionRemove, 
 		out.Status = outError(path, "the user not empty",pb.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.GetSessionByUser(in.User)
-	if info == nil {
-		out.Status = outError(path, "the session not found",pb.ResultStatus_NotExisted)
-		return nil
-	}
-	out.User = in.User
-	cache.RemoveSession(info.User)
+	//info := cache.GetSessionByUser(in.User)
+	//if info == nil {
+	//	out.Status = outError(path, "the session not found",pb.ResultStatus_NotExisted)
+	//	return nil
+	//}
+	//out.User = in.User
+	//cache.RemoveSession(info.User)
 	out.Status = outLog(path, out)
 	return nil
 }

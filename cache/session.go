@@ -1,60 +1,113 @@
 package cache
 
 import (
-	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"omo.msa.session/config"
 	"time"
 )
 
 type SessionInfo struct {
-	BaseInfo
+	CreateTime time.Time
 	User  string
 	Token *jwt.Token
 }
 
-func CreateSession(user string) string {
-	RemoveSession(user)
-	tmp := new(SessionInfo)
-	tmp.User = user
-	tmp.CreateTime = time.Now()
-	tmp.Token = createToken(user)
-	cacheCtx.sessions = append(cacheCtx.sessions, tmp)
-	return tmp.Token.Raw
+type ClaimsInfo struct {
+	//User string `json:"user"`
+	jwt.StandardClaims
 }
 
-func GetSessionByUser(user string) *SessionInfo {
-	for i :=0 ;i < len(cacheCtx.sessions);i += 1 {
-		if cacheCtx.sessions[i].User == user {
-			return cacheCtx.sessions[i]
-		}
+func CreateSession(user string) (string,error) {
+	token,err := createToken(user)
+	if err != nil {
+		return "", err
 	}
-	return nil
+	//RemoveSession(user)
+	//tmp := new(SessionInfo)
+	//tmp.User = user
+	//tmp.CreateTime = time.Now()
+	//tmp.Token = token
+	//cacheCtx.sessions = append(cacheCtx.sessions, tmp)
+	//return tmp.Token.Raw
+	return token.Raw,nil
 }
 
-func GetSessionByToken(msg string) *SessionInfo {
-	for i :=0 ;i < len(cacheCtx.sessions);i += 1 {
-		if cacheCtx.sessions[i].TokenString() == msg {
-			return cacheCtx.sessions[i]
-		}
-	}
-	return nil
-}
+//func GetSessionByUser(user string) *SessionInfo {
+//	for i :=0 ;i < len(cacheCtx.sessions);i += 1 {
+//		if cacheCtx.sessions[i].User == user {
+//			return cacheCtx.sessions[i]
+//		}
+//	}
+//	return nil
+//}
+//
+//func GetSessionByToken(msg string) *SessionInfo {
+//	for i :=0 ;i < len(cacheCtx.sessions);i += 1 {
+//		if cacheCtx.sessions[i].Raw() == msg {
+//			return cacheCtx.sessions[i]
+//		}
+//	}
+//	return nil
+//}
+//
+//func RemoveSession(user string) {
+//	for i := 0;i < len(cacheCtx.sessions);i += 1 {
+//		if cacheCtx.sessions[i].User == user {
+//			cacheCtx.sessions = append(cacheCtx.sessions[:i], cacheCtx.sessions[i+1:]...)
+//			break
+//		}
+//	}
+//}
 
-func RemoveSession(user string) {
-	for i := 0;i < len(cacheCtx.sessions);i += 1 {
-		if cacheCtx.sessions[i].User == user {
-			cacheCtx.sessions = append(cacheCtx.sessions[:i], cacheCtx.sessions[i+1:]...)
-			break
-		}
-	}
-}
-
-func createToken(uid string) *jwt.Token {
-	token := jwt.New(jwt.SigningMethodHS256)
-	msg, _ := token.SignedString([]byte(uid+config.Schema.Basic.Secret))
+func createToken(user string) (*jwt.Token,error) {
+	now := time.Now()
+	expire := now.Add(time.Second * time.Duration(config.Schema.Basic.Timeout))
+	info := ClaimsInfo{
+		//User: user,
+		StandardClaims: jwt.StandardClaims{
+			Id: user,
+			ExpiresAt: expire.Unix(),
+			Issuer: "yumei",
+	}}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, info)
+	msg, err := token.SignedString([]byte(config.Schema.Basic.Secret))
 	token.Raw = msg
-	return token
+	return token,err
+}
+
+func generateToken(user string) string {
+	token,err := createToken(user)
+	if err != nil {
+		return ""
+	}
+	return token.Raw
+}
+
+func ParseToken(token string) (*ClaimsInfo, error) {
+	claims, err := jwt.ParseWithClaims(token, &ClaimsInfo{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(config.Schema.Basic.Secret), nil
+	})
+	if claims != nil {
+		info, ok := claims.Claims.(*ClaimsInfo)
+		if ok && claims.Valid {
+			return info, nil
+		}
+	}
+	return nil, err
+}
+
+func (mine *ClaimsInfo)CheckNew() string {
+	now := time.Now().Unix()
+	rest := now - mine.StandardClaims.ExpiresAt
+	if rest > 0 {
+		return ""
+	}else{
+		if rest < -60 {
+			return ""
+		}else{
+			return generateToken(mine.Id)
+		}
+	}
 }
 
 func (mine *SessionInfo)IsExpired() bool {
@@ -72,21 +125,9 @@ func (mine *SessionInfo) UpdateTime()  {
 	mine.CreateTime = time.Now()
 }
 
-func (mine *SessionInfo)TokenString() string {
+func (mine *SessionInfo) Raw() string {
 	return mine.Token.Raw
 }
 
-func ParseToken(msg, uid string) (*jwt.Token,error) {
-	token, err := jwt.Parse(msg, func(token *jwt.Token) (interface{}, error) {
-		// Don't forget to validate the alg is what you expect:
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		}
-
-		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
-		return []byte(uid+config.Schema.Basic.Secret), nil
-	})
-	return token, err
-}
 
 

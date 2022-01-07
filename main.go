@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/logger"
 	_ "github.com/micro/go-plugins/registry/consul/v2"
@@ -29,6 +30,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	//test()
+
 	// New Service
 	service := micro.NewService(
 		micro.Name("omo.msa.session"),
@@ -57,6 +61,20 @@ func main() {
 	if err := service.Run(); err != nil {
 		logger.Fatal(err)
 	}
+}
+
+func test()  {
+	user := "60e2a3b5547b471255e8c962"
+	token,err := cache.CreateSession(user)
+	if err != nil {
+		fmt.Println(err.Error())
+	}else{
+		fmt.Println(token)
+	}
+
+	result,err := cache.ParseToken(token)
+	fmt.Println(err)
+	fmt.Println(result.Id)
 }
 
 func md5hex(_file string) string {
