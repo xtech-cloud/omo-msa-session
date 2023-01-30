@@ -57,6 +57,7 @@ func (mine *SessionService) Create(ctx context.Context, in *pb.ReqSessionAdd, ou
 		out.Status = outError(path, err.Error(), pb.ResultStatus_DBException)
 		return nil
 	}
+	cache.Content().Remove(in.User)
 	out.Token = token
 	out.Status = outLog(path, out)
 	return nil

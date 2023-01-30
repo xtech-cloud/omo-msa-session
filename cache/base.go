@@ -26,3 +26,10 @@ func (mine *cacheContext) IsSignOut(user string) bool {
 	_, ok := mine.outTokens[user]
 	return ok
 }
+
+func (mine *cacheContext) Remove(user string) {
+	_, ok := mine.outTokens[user]
+	if ok {
+		delete(mine.outTokens, user)
+	}
+}
