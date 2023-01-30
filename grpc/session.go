@@ -8,9 +8,9 @@ import (
 	"omo.msa.session/cache"
 )
 
-type SessionService struct {}
+type SessionService struct{}
 
-func inLog(name, data interface{})  {
+func inLog(name, data interface{}) {
 	bytes, _ := json.Marshal(data)
 	msg := ByteString(bytes)
 	logger.Infof("[in.%s]:data = %s", name, msg)
@@ -21,7 +21,7 @@ func outLog(name, data interface{}) *pb.ReplyStatus {
 	msg := ByteString(bytes)
 	logger.Infof("[out.%s]:data = %s", name, msg)
 	tmp := &pb.ReplyStatus{
-		Code: 0,
+		Code:    0,
 		Message: "",
 	}
 	return tmp
@@ -30,7 +30,7 @@ func outLog(name, data interface{}) *pb.ReplyStatus {
 func outError(name, msg string, code pb.ResultStatus) *pb.ReplyStatus {
 	logger.Warnf("[error.%s]:code = %d, msg = %s", name, code, msg)
 	tmp := &pb.ReplyStatus{
-		Code: code,
+		Code:    code,
 		Message: msg,
 	}
 	return tmp
@@ -45,14 +45,14 @@ func ByteString(p []byte) string {
 	return string(p)
 }
 
-func (mine *SessionService)Create(ctx context.Context, in *pb.ReqSessionAdd, out *pb.ReplyInfo) error {
+func (mine *SessionService) Create(ctx context.Context, in *pb.ReqSessionAdd, out *pb.ReplyInfo) error {
 	path := "session.create"
 	inLog(path, in)
 	if len(in.User) < 1 {
-		out.Status = outError(path, "the account is empty",pb.ResultStatus_Empty)
+		out.Status = outError(path, "the account is empty", pb.ResultStatus_Empty)
 		return nil
 	}
-	token,err := cache.CreateSession(in.User)
+	token, err := cache.CreateSession(in.User)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pb.ResultStatus_DBException)
 		return nil
@@ -62,11 +62,11 @@ func (mine *SessionService)Create(ctx context.Context, in *pb.ReqSessionAdd, out
 	return nil
 }
 
-func (mine *SessionService)CheckAvailable(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyAvailable) error {
+func (mine *SessionService) CheckAvailable(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyAvailable) error {
 	path := "session.available"
 	inLog(path, in)
 	if len(in.Token) < 1 {
-		out.Status = outError(path, "the token is empty",pb.ResultStatus_Empty)
+		out.Status = outError(path, "the token is empty", pb.ResultStatus_Empty)
 		return nil
 	}
 	//info := cache.GetSessionByToken(in.Token)
@@ -74,31 +74,33 @@ func (mine *SessionService)CheckAvailable(ctx context.Context, in *pb.RequestInf
 	//	out.Status = outError(path, "the token not exited",pb.ResultStatus_NotExisted)
 	//	return nil
 	//}
-	token,err := cache.ParseToken(in.Token)
-	if err != nil {
-		out.Status = outError(path, err.Error(),pb.ResultStatus_DBException)
-		return nil
-	}
-	out.User = token.Id
-	err = token.StandardClaims.Valid()
+	token, err := cache.ParseToken(in.Token)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pb.ResultStatus_DBException)
 		return nil
 	}
-
-	//out.Available = !info.IsExpired()
-	out.Uid = token.CheckNew()
-	out.Available = true
+	out.User = token.Id
+	if cache.Content().IsSignOut(token.Id) {
+		out.Available = false
+	} else {
+		err = token.StandardClaims.Valid()
+		if err != nil {
+			out.Status = outError(path, err.Error(), pb.ResultStatus_DBException)
+			return nil
+		}
+		out.Available = true
+		out.Uid = token.CheckNew()
+	}
 	out.Status = outLog(path, out)
 	return nil
 }
 
-func (mine *SessionService)Remove(ctx context.Context, in *pb.ReqSessionRemove, out *pb.ReplyInfo) error {
+func (mine *SessionService) Remove(ctx context.Context, in *pb.ReqSessionRemove, out *pb.ReplyInfo) error {
 	path := "session.remove"
-	if len(in.User) < 1 {
-		out.Status = outError(path, "the user not empty",pb.ResultStatus_Empty)
-		return nil
-	}
+	//if len(in.User) < 1 {
+	//	out.Status = outError(path, "the user not empty",pb.ResultStatus_Empty)
+	//	return nil
+	//}
 	//info := cache.GetSessionByUser(in.User)
 	//if info == nil {
 	//	out.Status = outError(path, "the session not found",pb.ResultStatus_NotExisted)
@@ -106,7 +108,13 @@ func (mine *SessionService)Remove(ctx context.Context, in *pb.ReqSessionRemove, 
 	//}
 	//out.User = in.User
 	//cache.RemoveSession(info.User)
+	token, err := cache.ParseToken(in.User)
+	if err != nil {
+		out.Status = outError(path, err.Error(), pb.ResultStatus_DBException)
+		return nil
+	}
+	out.User = token.Id
+	cache.Content().SignOut(token.Id, in.User)
 	out.Status = outLog(path, out)
 	return nil
 }
-

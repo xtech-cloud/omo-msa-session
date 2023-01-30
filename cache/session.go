@@ -8,8 +8,8 @@ import (
 
 type SessionInfo struct {
 	CreateTime time.Time
-	User  string
-	Token *jwt.Token
+	User       string
+	Token      *jwt.Token
 }
 
 type ClaimsInfo struct {
@@ -17,8 +17,8 @@ type ClaimsInfo struct {
 	jwt.StandardClaims
 }
 
-func CreateSession(user string) (string,error) {
-	token,err := createToken(user)
+func CreateSession(user string) (string, error) {
+	token, err := createToken(user)
 	if err != nil {
 		return "", err
 	}
@@ -29,7 +29,7 @@ func CreateSession(user string) (string,error) {
 	//tmp.Token = token
 	//cacheCtx.sessions = append(cacheCtx.sessions, tmp)
 	//return tmp.Token.Raw
-	return token.Raw,nil
+	return token.Raw, nil
 }
 
 //func GetSessionByUser(user string) *SessionInfo {
@@ -49,7 +49,7 @@ func CreateSession(user string) (string,error) {
 //	}
 //	return nil
 //}
-//
+
 //func RemoveSession(user string) {
 //	for i := 0;i < len(cacheCtx.sessions);i += 1 {
 //		if cacheCtx.sessions[i].User == user {
@@ -59,24 +59,24 @@ func CreateSession(user string) (string,error) {
 //	}
 //}
 
-func createToken(user string) (*jwt.Token,error) {
+func createToken(user string) (*jwt.Token, error) {
 	now := time.Now()
 	expire := now.Add(time.Second * time.Duration(config.Schema.Basic.Timeout))
 	info := ClaimsInfo{
 		//User: user,
 		StandardClaims: jwt.StandardClaims{
-			Id: user,
+			Id:        user,
 			ExpiresAt: expire.Unix(),
-			Issuer: "yumei",
-	}}
+			Issuer:    "yumei",
+		}}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, info)
 	msg, err := token.SignedString([]byte(config.Schema.Basic.Secret))
 	token.Raw = msg
-	return token,err
+	return token, err
 }
 
 func generateToken(user string) string {
-	token,err := createToken(user)
+	token, err := createToken(user)
 	if err != nil {
 		return ""
 	}
@@ -96,38 +96,35 @@ func ParseToken(token string) (*ClaimsInfo, error) {
 	return nil, err
 }
 
-func (mine *ClaimsInfo)CheckNew() string {
+func (mine *ClaimsInfo) CheckNew() string {
 	now := time.Now().Unix()
 	rest := now - mine.StandardClaims.ExpiresAt
 	if rest > 0 {
 		return ""
-	}else{
+	} else {
 		if rest < -60 {
 			return ""
-		}else{
+		} else {
 			return generateToken(mine.Id)
 		}
 	}
 }
 
-func (mine *SessionInfo)IsExpired() bool {
+func (mine *SessionInfo) IsExpired() bool {
 	now := time.Now().Unix()
 	diff := now - mine.CreateTime.Unix()
 	if diff > config.Schema.Basic.Timeout {
 		return true
-	}else{
+	} else {
 		mine.CreateTime = time.Now()
 		return false
 	}
 }
 
-func (mine *SessionInfo) UpdateTime()  {
+func (mine *SessionInfo) UpdateTime() {
 	mine.CreateTime = time.Now()
 }
 
 func (mine *SessionInfo) Raw() string {
 	return mine.Token.Raw
 }
-
-
-
