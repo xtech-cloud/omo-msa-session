@@ -12,7 +12,7 @@ const defaultJson string = `{
 		"std": false
 	},
 	"basic": {
-		"timeout": 43200,
+		"timeout": 18000,
 		"secret": "yumei2020-platfom"
 	}
 }
