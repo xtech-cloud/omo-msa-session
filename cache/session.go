@@ -102,11 +102,7 @@ func (mine *ClaimsInfo) CheckNew() string {
 	if rest > 0 {
 		return ""
 	} else {
-		if rest < -1800 {
-			return ""
-		} else {
-			return generateToken(mine.Id)
-		}
+		return generateToken(mine.Id)
 	}
 }
 
